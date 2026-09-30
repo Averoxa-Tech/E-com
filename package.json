@@ -8,9 +8,10 @@
     "dev": "node --watch server.js"
   },
   "dependencies": {
-    "express": "^4.19.2",
-    "cors": "^2.8.5",
-    "jsonwebtoken": "^9.0.2",
-    "uuid": "^9.0.1"
-  }
+  "express": "^4.19.2",
+  "cors": "^2.8.5",
+  "jsonwebtoken": "^9.0.2",
+  "uuid": "^9.0.1",
+  "pg": "^8.16.3"
+}
 }
