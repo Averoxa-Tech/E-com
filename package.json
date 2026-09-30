@@ -1,0 +1,16 @@
+{
+  "name": "averoxa-ecommerce-api",
+  "version": "1.0.0",
+  "description": "Amazon-style e-commerce REST API (Node.js + Express, in-memory data for demo)",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js"
+  },
+  "dependencies": {
+    "express": "^4.19.2",
+    "cors": "^2.8.5",
+    "jsonwebtoken": "^9.0.2",
+    "uuid": "^9.0.1"
+  }
+}
