@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<title>Averoxa E-commerce API — Documentation</title>
+<style>
+:root{
+  --paper:#0b0a08; --panel:#161309; --ink:#f4efe2; --muted:#a89f8c; --line:#332c1c;
+  --accent:#d9a53e; --accent-2:#b6822a; --accent-ink:#171206; --sun:#f2c664;
+  --get:#3fb883; --post:#d9a53e; --put:#5b9bd5; --delete:#ff7a7a;
+  --display:"Bricolage Grotesque",system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;
+  --mono:"JetBrains Mono",ui-monospace,Menlo,Consolas,monospace;
+}
+*,*::before,*::after{box-sizing:border-box}
+html{color-scheme:dark}
+body{margin:0;font-family:var(--display);font-size:16px;line-height:1.55;color:var(--ink);background:var(--paper);min-height:100vh}
+code,pre{font-family:var(--mono)}
+a{color:var(--sun)}
+body::before{content:"";position:fixed;top:0;right:0;left:0;height:420px;z-index:0;pointer-events:none;
+  background:radial-gradient(560px 300px at 88% -10%, rgba(217,165,62,.20), transparent 70%)}
+
+.top{background:rgba(11,10,8,.9);backdrop-filter:blur(8px);border-bottom:1px solid var(--line);position:sticky;top:0;z-index:5}
+.top .in{max-width:1280px;margin:0 auto;padding:14px 20px;display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
+.top h1{margin:0;font-size:19px;letter-spacing:-.02em}
+.top h1 small{display:block;color:var(--muted);font-weight:400;font-size:12.5px}
+.top .field input{padding:9px 12px;border:1px solid var(--line);border-radius:8px;background:var(--panel);color:var(--ink);min-width:220px}
+
+.layout{max-width:1280px;margin:0 auto;padding:20px;display:grid;grid-template-columns:220px 1fr;gap:22px;position:relative;z-index:1}
+@media(max-width:860px){.layout{grid-template-columns:1fr}}
+
+.nav{position:sticky;top:76px;align-self:start;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:10px;max-height:calc(100vh - 100px);overflow-y:auto}
+.nav a{display:block;padding:7px 10px;border-radius:8px;color:var(--muted);text-decoration:none;font-size:14px}
+.nav a:hover{background:rgba(217,165,62,.08);color:var(--ink)}
+
+.module{margin-bottom:34px}
+.module h2{font-size:20px;border-bottom:1px solid var(--line);padding-bottom:8px;margin:0 0 14px;color:var(--accent)}
+.module p.desc{color:var(--muted);margin:-6px 0 14px;font-size:14px}
+
+.ep{background:var(--panel);border:1px solid var(--line);border-radius:12px;margin-bottom:12px;overflow:hidden}
+.ep .hd{display:flex;align-items:center;gap:10px;padding:12px 14px;cursor:pointer;flex-wrap:wrap}
+.method{font-family:var(--mono);font-weight:700;font-size:12px;padding:3px 9px;border-radius:6px;color:var(--accent-ink);min-width:56px;text-align:center}
+.method.get{background:var(--get)} .method.post{background:var(--post)} .method.put{background:var(--put)} .method.delete{background:var(--delete)}
+.path{font-family:var(--mono);font-size:14.5px}
+.auth-tag{margin-left:auto;font-size:12px;color:var(--muted);border:1px solid var(--line);border-radius:999px;padding:2px 10px}
+.auth-tag.buyer{color:var(--sun);border-color:var(--accent-2)}
+.auth-tag.seller{color:var(--put);border-color:var(--put)}
+.ep .bd{border-top:1px solid var(--line);padding:14px;display:none}
+.ep.open .bd{display:block}
+.ep .summary{margin:0 0 12px;color:var(--ink)}
+.grid2{display:grid;gap:12px;grid-template-columns:1fr}
+@media(min-width:700px){.grid2{grid-template-columns:1fr 1fr}}
+.blocklabel{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;margin:0 0 6px}
+pre{background:#100e0a;border:1px solid var(--line);border-radius:8px;padding:10px 12px;overflow-x:auto;font-size:13px;margin:0}
+
+.status{font-size:13px;color:var(--muted);margin:0 0 16px}
+.hidden{display:none!important}
+</style>
+</head>
+<body>
+<div class="top"><div class="in">
+  <h1>Averoxa E-commerce API<small>REST API documentation · Amazon-style storefront</small></h1>
+  <div class="field"><input id="search" type="search" placeholder="Filter endpoints…"></div>
+</div></div>
+
+<div class="layout">
+  <nav class="nav" id="navList"></nav>
+  <main id="content">
+    <p class="status">Base URL (local): <code>http://localhost:4000</code> · All request/response bodies are JSON · Protected routes need <code>Authorization: Bearer &lt;token&gt;</code></p>
+    <div id="modules"></div>
+  </main>
+</div>
+
+<script>
+const DATA = [
+  { id:'auth', name:'Auth', desc:'Register, log in, refresh and end sessions.', endpoints:[
+    { m:'POST', p:'/api/auth/register', auth:'none', s:'Create a new buyer or seller account.',
+      req:{name:'Demo Buyer',email:'buyer@example.com',password:'password123',role:'buyer'},
+      res:{ok:true,token:'eyJhbGciOi...',user:{id:'u_ab12cd34',name:'Demo Buyer',email:'buyer@example.com',role:'buyer'}}},
+    { m:'POST', p:'/api/auth/login', auth:'none', s:'Exchange email + password for a bearer token.',
+      req:{email:'buyer@example.com',password:'password123'},
+      res:{ok:true,token:'eyJhbGciOi...',user:{id:'u1',name:'Demo Buyer',role:'buyer'}}},
+    { m:'POST', p:'/api/auth/refresh', auth:'buyer', s:'Issue a fresh token for the current session.',
+      res:{ok:true,token:'eyJhbGciOi...'}},
+    { m:'POST', p:'/api/auth/logout', auth:'buyer', s:'Stateless JWT — the client just discards the token.',
+      res:{ok:true,message:'Logged out. Discard the token on the client.'}},
+    { m:'GET', p:'/api/auth/me', auth:'buyer', s:'Return the logged-in user\\'s own profile.',
+      res:{ok:true,user:{id:'u1',name:'Demo Buyer',email:'buyer@example.com',role:'buyer',addresses:[]}}}
+  ]},
+  { id:'users', name:'Users', desc:'Profile details and the saved address book.', endpoints:[
+    { m:'GET', p:'/api/users/me', auth:'buyer', s:'Same as /api/auth/me — current user profile.', res:{ok:true,user:{id:'u1',name:'Demo Buyer'}}},
+    { m:'PUT', p:'/api/users/me', auth:'buyer', s:'Update name and/or email.', req:{name:'New Name'}, res:{ok:true,user:{id:'u1',name:'New Name'}}},
+    { m:'GET', p:'/api/users/me/addresses', auth:'buyer', s:'List saved delivery addresses.', res:{ok:true,addresses:[]}},
+    { m:'POST', p:'/api/users/me/addresses', auth:'buyer', s:'Add a new delivery address.',
+      req:{line1:'221B Baker Street',city:'Delhi',state:'DL',pincode:'110001',phone:'9999999999',isDefault:true},
+      res:{ok:true,address:{id:'addr_1a2b3c',line1:'221B Baker Street',isDefault:true}}},
+    { m:'DELETE', p:'/api/users/me/addresses/:addressId', auth:'buyer', s:'Remove a saved address.', res:{ok:true}}
+  ]},
+  { id:'categories', name:'Categories', desc:'Product category tree.', endpoints:[
+    { m:'GET', p:'/api/categories', auth:'none', s:'List every category (flat list with parentId).', res:{ok:true,categories:[{id:'c1',name:'Electronics',parentId:null}]}},
+    { m:'GET', p:'/api/categories/:id/products', auth:'none', s:'List products inside one category.', res:{ok:true,category:{id:'c2',name:'Mobiles'},products:[]}}
+  ]},
+  { id:'products', name:'Products', desc:'Catalog browsing plus seller-only writes.', endpoints:[
+    { m:'GET', p:'/api/products?page=1&limit=20', auth:'none', s:'Paginated product catalog.', res:{ok:true,page:1,limit:20,total:3,products:[{id:'p1',title:'Averoxa Buds Pro',price:2499}]}},
+    { m:'GET', p:'/api/products/:id', auth:'none', s:'Single product detail.', res:{ok:true,product:{id:'p1',title:'Averoxa Buds Pro',price:2499,stock:120}}},
+    { m:'POST', p:'/api/products', auth:'seller', s:'Create a new product listing.',
+      req:{title:'Averoxa Kettle',categoryId:'c4',price:1499,stock:50}, res:{ok:true,product:{id:'p_x9y8z7',title:'Averoxa Kettle'}}},
+    { m:'PUT', p:'/api/products/:id', auth:'seller', s:'Update a product you own.', req:{price:1399}, res:{ok:true,product:{id:'p1',price:1399}}},
+    { m:'DELETE', p:'/api/products/:id', auth:'seller', s:'Remove a product you own.', res:{ok:true}},
+    { m:'GET', p:'/api/products/:id/reviews', auth:'none', s:'All reviews for one product.', res:{ok:true,reviews:[{id:'r1',rating:5,title:'Great sound'}]}}
+  ]},
+  { id:'search', name:'Search', desc:'Keyword search with filters and sorting.', endpoints:[
+    { m:'GET', p:'/api/search?q=buds&minPrice=1000&maxPrice=5000&sort=price_asc', auth:'none',
+      s:'Filters: q, category, minPrice, maxPrice, minRating. Sort: price_asc, price_desc, rating, newest.',
+      res:{ok:true,total:1,results:[{id:'p1',title:'Averoxa Buds Pro',price:2499}]}}
+  ]},
+  { id:'cart', name:'Cart', desc:'The logged-in buyer\\'s shopping cart.', endpoints:[
+    { m:'GET', p:'/api/cart', auth:'buyer', s:'Current cart with live product data and line totals.', res:{ok:true,items:[],total:0}},
+    { m:'POST', p:'/api/cart/items', auth:'buyer', s:'Add a product to the cart (or increase qty if already in it).',
+      req:{productId:'p1',qty:2}, res:{ok:true,items:[{productId:'p1',qty:2,lineTotal:4998}]}},
+    { m:'PUT', p:'/api/cart/items/:productId', auth:'buyer', s:'Set the exact quantity of one cart line.', req:{qty:1}, res:{ok:true,items:[]}},
+    { m:'DELETE', p:'/api/cart/items/:productId', auth:'buyer', s:'Remove one line from the cart.', res:{ok:true,items:[]}},
+    { m:'DELETE', p:'/api/cart', auth:'buyer', s:'Empty the whole cart.', res:{ok:true,items:[]}}
+  ]},
+  { id:'wishlist', name:'Wishlist', desc:'Saved-for-later products.', endpoints:[
+    { m:'GET', p:'/api/wishlist', auth:'buyer', s:'List wishlisted products.', res:{ok:true,products:[]}},
+    { m:'POST', p:'/api/wishlist/items', auth:'buyer', s:'Add a product to the wishlist.', req:{productId:'p2'}, res:{ok:true,wishlist:['p2']}},
+    { m:'DELETE', p:'/api/wishlist/items/:productId', auth:'buyer', s:'Remove a product from the wishlist.', res:{ok:true,wishlist:[]}}
+  ]},
+  { id:'orders', name:'Orders', desc:'Checkout, order history, cancellation and tracking.', endpoints:[
+    { m:'POST', p:'/api/orders', auth:'buyer', s:'Checkout the current cart into a new order (reserves stock).',
+      req:{addressId:'addr_1a2b3c',paymentMethod:'card'}, res:{ok:true,order:{id:'ord_9f8e7d',status:'placed',total:4998}}},
+    { m:'GET', p:'/api/orders', auth:'buyer', s:'List the logged-in buyer\\'s own orders.', res:{ok:true,orders:[]}},
+    { m:'GET', p:'/api/orders/:id', auth:'buyer', s:'One order\\'s full detail.', res:{ok:true,order:{id:'ord_9f8e7d',status:'placed'}}},
+    { m:'POST', p:'/api/orders/:id/cancel', auth:'buyer', s:'Cancel an order (only before it ships) and restock items.', res:{ok:true,order:{status:'cancelled'}}},
+    { m:'GET', p:'/api/orders/:id/track', auth:'buyer', s:'Current shipment stage.', res:{ok:true,status:'placed',stages:['placed','confirmed','shipped','out_for_delivery','delivered'],currentStage:0}}
+  ]},
+  { id:'reviews', name:'Reviews', desc:'Ratings and reviews on products.', endpoints:[
+    { m:'POST', p:'/api/products/:productId/reviews', auth:'buyer', s:'Leave a review (also recalculates the product\\'s average rating).',
+      req:{rating:5,title:'Great sound',body:'Battery life is excellent.'}, res:{ok:true,review:{id:'rev_2b3c4d',rating:5}}},
+    { m:'PUT', p:'/api/reviews/:id', auth:'buyer', s:'Edit your own review.', req:{rating:4}, res:{ok:true,review:{id:'rev_2b3c4d',rating:4}}},
+    { m:'DELETE', p:'/api/reviews/:id', auth:'buyer', s:'Delete your own review.', res:{ok:true}}
+  ]},
+  { id:'payments', name:'Payments', desc:'Payment intents and gateway webhooks.', endpoints:[
+    { m:'POST', p:'/api/payments/create-intent', auth:'buyer', s:'Start payment for an order (wire this to Stripe/Razorpay in production).',
+      req:{orderId:'ord_9f8e7d',method:'card'}, res:{ok:true,payment:{id:'pay_5e6f7a',status:'requires_confirmation'},clientSecret:'demo_secret_pay_5e6f7a'}},
+    { m:'POST', p:'/api/payments/webhook', auth:'none', s:'Gateway calls this on success/failure. Verify the signature header in production.',
+      req:{paymentId:'pay_5e6f7a',status:'succeeded'}, res:{ok:true,received:true}},
+    { m:'GET', p:'/api/payments/:id', auth:'buyer', s:'Look up one payment\\'s status.', res:{ok:true,payment:{id:'pay_5e6f7a',status:'succeeded'}}}
+  ]},
+  { id:'sellers', name:'Seller Panel', desc:'Seller onboarding, catalog, orders, analytics and inventory.', endpoints:[
+    { m:'POST', p:'/api/sellers/register', auth:'buyer', s:'Turn the current account into a seller.', req:{shopName:'Averoxa Electronics'}, res:{ok:true,seller:{id:'s2',shopName:'Averoxa Electronics'}}},
+    { m:'GET', p:'/api/sellers/me/products', auth:'seller', s:'This seller\\'s own product catalog.', res:{ok:true,products:[]}},
+    { m:'GET', p:'/api/sellers/me/orders', auth:'seller', s:'Orders containing at least one of this seller\\'s products.', res:{ok:true,orders:[]}},
+    { m:'GET', p:'/api/sellers/me/analytics', auth:'seller', s:'Revenue, units sold, active listings, rating.', res:{ok:true,analytics:{revenue:74997,unitsSold:3,activeProducts:3,rating:4.6}}},
+    { m:'PUT', p:'/api/sellers/me/inventory/:productId', auth:'seller', s:'Update stock for one of your products.', req:{stock:80}, res:{ok:true,product:{id:'p1',stock:80}}}
+  ]},
+  { id:'recommendations', name:'Recommendations', desc:'Personalized picks, similar items, trending products.', endpoints:[
+    { m:'GET', p:'/api/recommendations/for-you', auth:'buyer', s:'Based on past orders + wishlist categories (falls back to top-rated for new users).', res:{ok:true,recommendations:[]}},
+    { m:'GET', p:'/api/recommendations/similar/:productId', auth:'none', s:'Other products in the same category, ranked by rating.', res:{ok:true,similar:[]}},
+    { m:'GET', p:'/api/recommendations/trending', auth:'none', s:'Most-ordered products across all buyers.', res:{ok:true,trending:[]}}
+  ]}
+];
+
+function esc(s){ return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function authTag(a){
+  if(a==='none') return '';
+  return `<span class="auth-tag ${a}">${a==='seller'?'seller token':'buyer token'}</span>`;
+}
+
+function renderNav(){
+  document.getElementById('navList').innerHTML = DATA.map(m=>`<a href="#${m.id}">${esc(m.name)}</a>`).join('');
+}
+
+function renderModules(filterText){
+  const q = (filterText||'').trim().toLowerCase();
+  const html = DATA.map(mod=>{
+    const eps = mod.endpoints.filter(e => !q || (e.m+' '+e.p+' '+e.s).toLowerCase().includes(q));
+    if(!eps.length) return '';
+    return `<section class="module" id="${mod.id}">
+      <h2>${esc(mod.name)}</h2>
+      <p class="desc">${esc(mod.desc)}</p>
+      ${eps.map(e=>`
+        <div class="ep">
+          <div class="hd" onclick="this.parentElement.classList.toggle('open')">
+            <span class="method ${e.m.toLowerCase()}">${e.m}</span>
+            <span class="path">${esc(e.p)}</span>
+            ${authTag(e.auth)}
+          </div>
+          <div class="bd">
+            <p class="summary">${esc(e.s)}</p>
+            <div class="grid2">
+              ${e.req ? `<div><p class="blocklabel">Request body</p><pre>${esc(JSON.stringify(e.req,null,2))}</pre></div>` : ''}
+              <div><p class="blocklabel">Sample response</p><pre>${esc(JSON.stringify(e.res,null,2))}</pre></div>
+            </div>
+          </div>
+        </div>`).join('')}
+    </section>`;
+  }).join('');
+  document.getElementById('modules').innerHTML = html || '<p class="status">No endpoints match that search.</p>';
+}
+
+document.getElementById('search').addEventListener('input', e=>renderModules(e.target.value));
+renderNav();
+renderModules('');
+</script>
+</body>
+</html>
