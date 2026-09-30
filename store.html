@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Averoxa Store</title>
+<style>
+:root{--bg:#0b0a08;--card:#16130d;--line:#332c1c;--gold:#d9a53e;--txt:#f4efe2;--mut:#a89f8c}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--txt);font-family:system-ui,sans-serif}
+header{position:sticky;top:0;background:var(--bg);border-bottom:1px solid var(--line);padding:10px 14px;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+header b{color:var(--gold);font-size:18px;margin-right:auto}
+button{background:var(--gold);color:#171206;border:0;border-radius:8px;padding:8px 12px;font-weight:700;cursor:pointer}
+button.g{background:transparent;color:var(--txt);border:1px solid var(--line)}
+main{padding:14px;max-width:900px;margin:auto}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:10px}
+.card img{width:100%;aspect-ratio:1;object-fit:cover;border-radius:8px}
+.card h4{margin:8px 0 4px;font-size:14px}.p{color:var(--gold);font-weight:700}.m{color:var(--mut);font-size:12px}
+input{width:100%;padding:10px;margin:4px 0;background:#000;color:var(--txt);border:1px solid var(--line);border-radius:8px}
+.row{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--line)}
+#toast{position:fixed;bottom:16px;left:50%;transform:translateX(-50%);background:var(--gold);color:#171206;padding:10px 16px;border-radius:10px;display:none;font-weight:700;z-index:9}
+.box{max-width:420px;margin:auto}
+</style></head><body>
+<header><b>🛍️ Averoxa Store</b>
+<button class="g" onclick="go('shop')">Shop</button>
+<button class="g" onclick="go('orders')">Orders</button>
+<button onclick="go('cart')">Cart (<span id="cn">0</span>)</button>
+<button class="g" id="auth" onclick="authBtn()">Login</button></header>
+<main id="v"></main><div id="toast"></div>
+<script>
+const API='https://e-com-1-qzr2.onrender.com';
+let token=localStorage.getItem('tk')||'',user=JSON.parse(localStorage.getItem('us')||'null'),cart=[],view='shop',reg=false;
+const $=id=>document.getElementById(id),e=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+function toast(t){const x=$('toast');x.textContent=t;x.style.display='block';setTimeout(()=>x.style.display='none',2800)}
+async function api(p,o={}){
+ const r=await fetch(API+p,{...o,headers:{'Content-Type':'application/json',...(token?{Authorization:'Bearer '+token}:{})},body:o.body&&JSON.stringify(o.body)});
+ const j=await r.json().catch(()=>({}));if(!r.ok||j.ok===false)throw new Error(j.error||'Request failed');return j}
+function authBtn(){if(user){token='';user=null;cart=[];localStorage.clear();sync();toast('Logged out');go('shop')}else go('login')}
+function sync(){$('auth').textContent=user?'Logout ('+user.name.split(' ')[0]+')':'Login';$('cn').textContent=cart.reduce((s,i)=>s+i.qty,0)}
+async function loadCart(){if(!token)return;try{cart=(await api('/api/cart')).items}catch{}sync()}
+async function go(v2){view=v2;$('v').innerHTML='<p class="m">Loading… (server may take up to a minute to wake up)</p>';
+ try{await({shop,cart:cartV,orders,login:loginV}[v2])()}catch(x){$('v').innerHTML='<p>⚠️ '+e(x.message)+'</p>'}}
+async function shop(){const j=await api('/api/products?limit=50');
+ $('v').innerHTML='<div class="grid">'+j.products.map(p=>`<div class="card"><img src="${e(p.images?.[0])}" alt=""><h4>${e(p.title)}</h4><div><span class="p">₹${p.price}</span> <s class="m">₹${p.mrp||''}</s></div><div class="m">⭐ ${p.rating||'-'} · ${p.stock} left</div><button style="margin-top:8px;width:100%" onclick="add('${p.id}')">Add to cart</button></div>`).join('')+'</div>'}
+async function add(id){if(!token){toast('Please login first');return go('login')}
+ try{await api('/api/cart/items',{method:'POST',body:{productId:id,qty:1}});await loadCart();toast('Added to cart')}catch(x){toast(x.message)}}
+function loginV(){$('v').innerHTML=`<div class="box card"><h3>${reg?'Create account':'Login'}</h3>${reg?'<input id="n" placeholder="Name">':''}<input id="em" placeholder="Email"><input id="pw" type="password" placeholder="Password"><button style="width:100%;margin-top:6px" onclick="doAuth()">${reg?'Register':'Login'}</button><p class="m" onclick="reg=!reg;loginV()" style="cursor:pointer">${reg?'Have an account? Login':'New here? Register'}</p><p class="m">Demo: buyer@example.com / password123</p></div>`}
+async function doAuth(){try{const b={email:$('em').value,password:$('pw').value};if(reg)b.name=$('n').value;
+ const j=await api('/api/auth/'+(reg?'register':'login'),{method:'POST',body:b});token=j.token;user=j.user;
+ localStorage.setItem('tk',token);localStorage.setItem('us',JSON.stringify(user));await loadCart();toast('Welcome '+user.name);go('shop')}catch(x){toast(x.message)}}
+async function cartV(){if(!token)return loginV();await loadCart();
+ if(!cart.length){$('v').innerHTML='<p>Your cart is empty.</p>';return}
+ const t=cart.reduce((s,i)=>s+i.lineTotal,0);
+ $('v').innerHTML=cart.map(i=>`<div class="row"><span>${e(i.product?.title)}<br><span class="m">₹${i.product?.price} × ${i.qty}</span></span><span><button class="g" onclick="qty('${i.productId}',${i.qty-1})">−</button> ${i.qty} <button class="g" onclick="qty('${i.productId}',${i.qty+1})">+</button></span></div>`).join('')+
+ `<h3>Total: <span class="p">₹${t}</span></h3><div class="box card"><h4>Delivery address (Cash on Delivery)</h4><input id="l1" placeholder="Address line"><input id="ct" placeholder="City"><input id="st" placeholder="State"><input id="pc" placeholder="Pincode"><input id="ph" placeholder="Phone"><button style="width:100%;margin-top:6px" onclick="order()">Place order</button></div>`}
+async function qty(id,q){try{if(q<1)await api('/api/cart/items/'+id,{method:'DELETE'});else await api('/api/cart/items/'+id,{method:'PUT',body:{qty:q}});cartV()}catch(x){toast(x.message)}}
+async function order(){try{const a=await api('/api/users/me/addresses',{method:'POST',body:{line1:$('l1').value,city:$('ct').value,state:$('st').value,pincode:$('pc').value,phone:$('ph').value}});
+ const o=await api('/api/orders',{method:'POST',body:{addressId:a.address.id,paymentMethod:'cod'}});cart=[];sync();toast('Order placed! '+o.order.id);go('orders')}catch(x){toast(x.message)}}
+async function orders(){if(!token)return loginV();const j=await api('/api/orders');
+ $('v').innerHTML=j.orders.length?j.orders.map(o=>`<div class="card" style="margin-bottom:10px"><b>${e(o.id)}</b> · <span class="p">₹${o.total}</span><div class="m">${e(o.status)} · ${new Date(o.createdAt).toLocaleString()}</div>${o.items.map(i=>`<div class="m">${e(i.title)} × ${i.qty}</div>`).join('')}</div>`).join(''):'<p>No orders yet.</p>'}
+sync();loadCart();go('shop');
+</script></body></html>
