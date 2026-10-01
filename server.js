@@ -1,10 +1,17 @@
 const express = require('express');
 const cors = require('cors');
 const { notFound, errorHandler } = require('./middleware/errorHandler');
+const { init, persist, save } = require('./data/store');
 
 const app = express();
 app.use(cors());
 app.use(express.json());
+
+// Save data to PostgreSQL after every write request.
+app.use((req, res, next) => {
+  if (req.method !== 'GET') res.on('finish', persist);
+  next();
+});
 
 // Simple request log — replace with morgan/winston in production.
 app.use((req, res, next) => {
@@ -32,8 +39,12 @@ app.use(notFound);
 app.use(errorHandler);
 
 const PORT = process.env.PORT || 4000;
-app.listen(PORT, '0.0.0.0', () => {
-  console.log(`Averoxa E-commerce API running on port ${PORT}`);
-});
+if (!process.env.JWT_SECRET) console.warn('WARNING: JWT_SECRET is not set. Set it in your environment before going live.');
+
+init()
+  .catch(e => console.error('Database init failed, running in memory:', e.message))
+  .finally(() => app.listen(PORT, () => console.log(`Averoxa E-commerce API running on port ${PORT}`)));
+
+process.on('SIGTERM', async () => { try { await save(); } catch (e) {} process.exit(0); });
 
 module.exports = app;
