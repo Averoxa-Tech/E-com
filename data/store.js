@@ -1,8 +1,7 @@
 /**
- * In-memory "database" for the demo API.
- * Swap this out for MongoDB/Postgres/MySQL in production —
- * every route file only touches data through the functions below,
- * so the storage layer can be replaced without touching route logic.
+ * Data layer: the whole store lives in memory for fast reads, and every
+ * write is saved to PostgreSQL (table ax_state) so data survives restarts.
+ * Without DATABASE_URL it simply runs in memory (local development).
  */
 const { v4: uuid } = require('uuid');
 
@@ -57,4 +56,43 @@ const db = {
 
 function nextId(prefix) { return prefix + '_' + uuid().slice(0, 8); }
 
-module.exports = { db, nextId };
+// ---- password hashing (built-in scrypt, no extra dependency) ----
+const crypto = require('crypto');
+function hashPassword(p) {
+  const salt = crypto.randomBytes(16).toString('hex');
+  return 'scrypt$' + salt + '$' + crypto.scryptSync(p, salt, 64).toString('hex');
+}
+function verifyPassword(stored, p) {
+  if (!String(stored).startsWith('scrypt$')) return stored === p; // legacy plain-text demo users
+  const [, salt, hash] = stored.split('$');
+  return crypto.timingSafeEqual(Buffer.from(hash, 'hex'), crypto.scryptSync(p, salt, 64));
+}
+
+// ---- PostgreSQL persistence ----
+const pool = process.env.DATABASE_URL ? require('./db') : null;
+let timer = null;
+
+async function save() {
+  if (!pool) return;
+  await pool.query(
+    "INSERT INTO ax_state (id, data) VALUES ('main', $1) ON CONFLICT (id) DO UPDATE SET data = EXCLUDED.data, updated_at = now()",
+    [JSON.stringify(db)]
+  );
+}
+
+async function init() {
+  if (!pool) { console.log('No DATABASE_URL: running in memory only'); return; }
+  await pool.query('CREATE TABLE IF NOT EXISTS ax_state (id TEXT PRIMARY KEY, data JSONB NOT NULL, updated_at TIMESTAMPTZ DEFAULT now())');
+  const r = await pool.query("SELECT data FROM ax_state WHERE id = 'main'");
+  if (r.rows.length) { Object.assign(db, r.rows[0].data); console.log('Loaded data from PostgreSQL'); }
+  else { await save(); console.log('Seeded PostgreSQL with demo data'); }
+}
+
+// Debounced save, called after every write request.
+function persist() {
+  if (!pool) return;
+  clearTimeout(timer);
+  timer = setTimeout(() => save().catch(e => console.error('Save failed:', e.message)), 300);
+}
+
+module.exports = { db, nextId, init, persist, save, hashPassword, verifyPassword };
